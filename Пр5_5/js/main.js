@@ -8,9 +8,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const passwordInput = document.getElementById("password");
     const userNameSpan = document.querySelector(".user-name");
     const cardsContainer = document.querySelector(".cards.cards-restaurants");
+    const restaurantNameHeader = document.getElementById("restaurant-name"); // Заголовок для ресторана
 
     const dbFolder = "db/";
 
+    // Загрузка JSON-файлов из папки
     async function loadRestaurantData() {
         const fileNames = [
             "food-band.json",
@@ -28,7 +30,14 @@ document.addEventListener("DOMContentLoaded", function () {
             try {
                 const response = await fetch(`${dbFolder}${fileName}`);
                 const data = await response.json();
-                restaurantData.push(...data);
+
+                // Добавляем имя файла к каждому ресторану
+                const updatedData = data.map(restaurant => ({
+                    ...restaurant,
+                    fileName: fileName.replace(/\.json$/, "")
+                }));
+
+                restaurantData.push(...updatedData);
             } catch (error) {
                 console.error(`Ошибка загрузки файла ${fileName}:`, error);
             }
@@ -37,21 +46,22 @@ document.addEventListener("DOMContentLoaded", function () {
         return restaurantData;
     }
 
+    // Генерация карточек ресторанов
     function generateRestaurantCards(data) {
-        cardsContainer.innerHTML = ""; 
+        cardsContainer.innerHTML = "";
         data.forEach((restaurant) => {
             const cardHTML = `
-                <a href="#" class="card card-restaurant">
+                <a href="#" class="card card-restaurant" data-file-name="${restaurant.fileName}">
                     <img src="${restaurant.image}" alt="${restaurant.name}" class="card-image" />
                     <div class="card-text">
                         <div class="card-heading">
                             <h3 class="card-title">${restaurant.name}</h3>
-                            <span class="card-tag tag">${restaurant.time || "Час невідомий"}</span>
+                            <span class="card-tag tag">${restaurant.time || "Час неизвестен"}</span>
                         </div>
                         <div class="card-info">
-                            <div class="rating">${restaurant.rating || "Рейтинг недоступний"}</div>
-                            <div class="price">${restaurant.price || "Ціна недоступна"}</div>
-                            <div class="category">${restaurant.category || "Категорія невідома"}</div>
+                            <div class="rating">${restaurant.rating || "Рейтинг недоступен"}</div>
+                            <div class="price">${restaurant.price || "Цена недоступна"}</div>
+                            <div class="category">${restaurant.category || "Категория неизвестна"}</div>
                         </div>
                     </div>
                 </a>
@@ -60,18 +70,12 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    async function init() {
-        const restaurantData = await loadRestaurantData();
-        generateRestaurantCards(restaurantData);
-
-       
-        if (localStorage.getItem("login")) {
-            displayLoggedIn(localStorage.getItem("login"));
-        } else {
-            displayLoggedOut();
-        }
+    // Обновление заголовка для ресторана
+    function updateRestaurantHeader(fileName) {
+        restaurantNameHeader.textContent = `Ви переглядаєте меню з ресторану: ${fileName}`;
     }
 
+    // Обработка клика по карточке ресторана
     cardsContainer.addEventListener("click", function (event) {
         const card = event.target.closest(".card-restaurant");
 
@@ -80,15 +84,20 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!localStorage.getItem("login")) {
             modalAuth.style.display = "flex";
             document.body.style.overflow = "hidden";
+        } else {
+            const fileName = card.dataset.fileName;
+            updateRestaurantHeader(fileName);
         }
     });
 
+    // Открытие модального окна авторизации
     authButton.addEventListener("click", () => {
         modalAuth.style.display = "flex";
         document.body.style.overflow = "hidden";
         resetInputBorders();
     });
 
+    // Закрытие модального окна авторизации
     closeAuthButton.addEventListener("click", () => {
         closeModal();
     });
@@ -99,6 +108,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // Отправка формы авторизации
     loginForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const login = loginInput.value.trim();
@@ -107,7 +117,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!login || !password) {
             if (!login) loginInput.style.borderColor = "red";
             if (!password) passwordInput.style.borderColor = "red";
-            alert("Будь ласка, заповніть усі поля.");
+            alert("Пожалуйста, заполните все поля.");
         } else {
             localStorage.setItem("login", login);
             displayLoggedIn(login);
@@ -115,11 +125,13 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // Выход из профиля
     logoutButton.addEventListener("click", () => {
         localStorage.removeItem("login");
         displayLoggedOut();
     });
 
+    // Отображение состояния авторизации
     function displayLoggedIn(login) {
         authButton.style.display = "none";
         logoutButton.style.display = "inline-block";
@@ -138,6 +150,7 @@ document.addEventListener("DOMContentLoaded", function () {
         passwordInput.value = "";
     }
 
+    // Закрытие модального окна
     function closeModal() {
         modalAuth.style.display = "none";
         document.body.style.overflow = "";
@@ -149,5 +162,18 @@ document.addEventListener("DOMContentLoaded", function () {
         passwordInput.style.borderColor = "";
     }
 
+    // Инициализация программы
+    async function init() {
+        const restaurantData = await loadRestaurantData();
+        generateRestaurantCards(restaurantData);
+
+        if (localStorage.getItem("login")) {
+            displayLoggedIn(localStorage.getItem("login"));
+        } else {
+            displayLoggedOut();
+        }
+    }
+
     init();
 });
+
